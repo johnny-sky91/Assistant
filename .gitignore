@@ -1,0 +1,7 @@
+others/
+.env
+__pycache__/
+scratchpad.py
+scripts_testing.py
+.venv//
+auto_buddy.py
