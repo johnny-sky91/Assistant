@@ -49,19 +49,24 @@ class ComponentsDataReader:
 
     def select_weeks_data_only(self):
         all_weeks_data = [col for col in self.data.columns if "W Total" in col]
+
         today = datetime.datetime.today()
         start_of_week = today - timedelta(days=today.weekday())
         start_of_week_str = start_of_week.strftime("%#m/%#d")
+
         for i, x in enumerate(all_weeks_data):
             if start_of_week_str in x:
                 weeks_data = all_weeks_data[i:]
+                break
 
         non_date_columns = self.data.columns[:10].to_list()
 
         self.data = self.data[non_date_columns + weeks_data]
+
         new_weeks_dates = [
             x.split(" ")[2][:-1] if "/" in x else x for x in self.data.columns
         ]
+
         self.data.columns = new_weeks_dates
         self.raw_data = self.data.copy()
 
@@ -69,6 +74,7 @@ class ComponentsDataReader:
         self.components = pd.DataFrame(self.data[self.data["COLUMN_8"] == "ROW_12"])
         self.components = self.components[["COLUMN_1"]]
         self.components.rename(columns={"COLUMN_1": "COMPONENT"}, inplace=True)
+        self.components["COMPONENT"] = self.components["COMPONENT"].str.replace(" ", "")
         self.components.reset_index(drop=True, inplace=True)
 
     def get_components_stock(self):
