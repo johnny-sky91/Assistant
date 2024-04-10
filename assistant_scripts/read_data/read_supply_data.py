@@ -14,9 +14,7 @@ class SupplyDataReader:
 
     def read_data(self):
         try:
-            self.data = pd.read_excel(self.path_supply, sheet_name=None)
-            sheet_names = list(self.data.keys())
-            self.data = self.data[sheet_names[1]]
+            self.data = pd.read_excel(self.path_supply, sheet_name="SUPPLY")
         except Exception as e:
             print(f"Error loading data: {e}")
 
@@ -40,10 +38,13 @@ class SupplyDataReader:
         date_columns = [
             x for x in self.data.columns if isinstance(x, datetime.datetime)
         ]
-
+        # print(date_columns)
+        # for x in date_columns:
+        #     print(x)
         today = datetime.datetime.today()
         today = today.replace(hour=0, minute=0, second=0, microsecond=0)
         start_of_week = today - timedelta(days=today.weekday())
+        # print(start_of_week)
 
         date_columns = date_columns[date_columns.index(start_of_week) :]
         self.data = self.data[ready_columns + date_columns]

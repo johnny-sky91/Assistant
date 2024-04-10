@@ -7,37 +7,45 @@ from assistant_scripts.read_data.read_products_data import ProductsDataReader
 from assistant_scripts.read_data.read_factory_data import FactoryDataReader
 from assistant_scripts.read_data.read_supply_data import SupplyDataReader
 
-from assistant_scripts.report_components_balances import ComponentsBalances
-from assistant_scripts.report_groups_statuses import GroupsStatuses
-from assistant_scripts.report_supply_info import CreateSupplyInfo
+from assistant_scripts.reports.report_components_balances import ComponentsBalances
+from assistant_scripts.reports.report_groups_statuses import GroupsStatuses
+from assistant_scripts.reports.report_supply_info import CreateSupplyInfo
 
-from assistant_scripts.create_pos import create_csv_pos
-from assistant_scripts.minor_functions import sort_my_data
+from assistant_scripts.other_functions.create_pos import create_csv_pos
+from assistant_scripts.other_functions.sort_my_data import sort_my_data
 
 load_dotenv()
 
-mem_comp_path = os.getenv("PATH_MEM_LIST")
-pos_template = os.getenv("PATH_PO_TEMPLATE")
+paths = {
+    "po_template": os.getenv("PATH_PO_TEMPLATE"),
+    "groups": os.getenv("PATH_GROUPS"),
+    "db": os.getenv("PATH_DB"),
+    "my_data": os.getenv("PATH_MY_DATA"),
+    "products_files": os.getenv("PATH_PRODUCTS"),
+    "components_info": os.getenv("PATH_COMPONENTS"),
+}
 
-po_ccn = os.getenv("PO_CCN")
-po_mas_loc = os.getenv("PO_MAS_LOC")
-po_request_div = os.getenv("PO_REQUEST_DIV")
-po_pur_loc = os.getenv("PO_PUR_LOC")
-po_delivery = os.getenv("PO_DELIVERY")
-po_inspection = os.getenv("PO_INSPECTION")
+po_data = {
+    "ccn": os.getenv("PO_CCN"),
+    "mas_loc": os.getenv("PO_MAS_LOC"),
+    "request_div": os.getenv("PO_REQUEST_DIV"),
+    "pur_loc": os.getenv("PO_PUR_LOC"),
+    "delivery": os.getenv("PO_DELIVERY"),
+    "inspection": os.getenv("PO_INSPECTION"),
+}
 
-path_groups = os.getenv("PATH_GROUPS")
-path_db = os.getenv("PATH_DB")
-path_my_data = os.getenv("PATH_MY_DATA")
-path_products_files = os.getenv("PATH_PRODUCTS")
-path_components_info = os.getenv("PATH_COMPONENTS")
+supply_data = {
+    "supplier_1": os.getenv("SUPPLIER_1"),
+    "supplier_2": os.getenv("SUPPLIER_2"),
+    "supplier_3": os.getenv("SUPPLIER_3"),
+    "incoterms": os.getenv("SUPPLY_INCOTERMS"),
+    "t_mode": os.getenv("SUPPLY_T_MODE"),
+}
 
-supplier1 = os.getenv("SUPPLIER_1")
-supplier2 = os.getenv("SUPPLIER_2")
-supplier3 = os.getenv("SUPPLIER_3")
-supply_incoterms = os.getenv("SUPPLY_INCOTERMS")
-supply_t_mode = os.getenv("SUPPLY_T_MODE")
-
+passwords = {}
+for i in range(1, 6):
+    passwords[f"name_{i}"] = os.getenv(f"PASSWORD_{i}").split(", ")[0]
+    passwords[f"pass_{i}"] = os.getenv(f"PASSWORD_{i}").split(", ")[1]
 
 sg.theme("GreenTan")
 
@@ -54,68 +62,52 @@ def handle_report_components_data(values):
 
 def handle_report_products_data(values):
     data_handler = ProductsDataReader(
-        file_path=None, folder_path=path_products_files, to_excel=True
+        file_path=None, folder_path=paths["products_files"], to_excel=True
     )
     data_handler()
 
 
 def handle_report_factory_data(values):
     data_handler = FactoryDataReader(
-        factory_data_path=values["factory_path"], db_path=path_db
+        factory_data_path=values["factory_path"], db_path=paths["db"]
     )
     data_handler()
 
 
 def handle_create_pos(values):
     create_csv_pos(
-        path_excel_dat=pos_template,
-        ccn=po_ccn,
-        mas_loc=po_mas_loc,
-        request_div=po_request_div,
-        pur_loc=po_pur_loc,
-        delivery=po_delivery,
-        inspection=po_inspection,
+        path_excel_dat=paths["po_template"],
+        ccn=po_data["ccn"],
+        mas_loc=po_data["mas_loc"],
+        request_div=po_data["request_div"],
+        pur_loc=po_data["pur_loc"],
+        delivery=po_data["delivery"],
+        inspection=po_data["inspection"],
     )
 
 
 def handle_sort_my_data(values):
-    sort_my_data(directory=path_my_data)
+    sort_my_data(directory=paths["my_data"])
 
 
-def handle_give_pass_main(values):
-    pyperclip.copy(os.getenv("PASS_MAIN"))
-
-
-def handle_give_pass_bible(values):
-    pyperclip.copy(os.getenv("PASS_BIBLE"))
-
-
-def handle_give_pass_bright(values):
-    pyperclip.copy(os.getenv("PASS_BRIGHT"))
-
-
-def handle_give_pass_mole(values):
-    pyperclip.copy(os.getenv("PASS_MOLE"))
-
-
-def handle_give_pass_rpg(values):
-    pyperclip.copy(os.getenv("PASS_RPG"))
+def handle_get_password(values, password):
+    pyperclip.copy(password)
 
 
 def handle_groups_statuses(values):
     report = GroupsStatuses(
         path_components=values["components_data_path"],
-        path_products=path_products_files,
-        path_groups=path_groups,
+        path_products=paths["products_files"],
+        path_groups=paths["groups"],
         path_supply=values["supply_path"],
-        path_db=path_db,
+        path_db=paths["db"],
     )
     report()
 
 
 def handle_components_balances(values):
     report = ComponentsBalances(
-        path_groups=path_groups,
+        path_groups=paths["groups"],
         path_components=values["components_data_path"],
         path_supply=values["supply_path"],
     )
@@ -125,19 +117,19 @@ def handle_components_balances(values):
 def handle_report_supply_info(values):
     report = CreateSupplyInfo(
         path_supply=values["supply_path"],
-        path_components=path_components_info,
-        supplier1=supplier1,
-        supplier2=supplier2,
-        supplier3=supplier3,
-        incoterms=supply_incoterms,
-        t_mode=supply_t_mode,
+        path_components=paths["components_info"],
+        supplier1=supply_data["supplier_1"],
+        supplier2=supply_data["supplier_2"],
+        supplier3=supply_data["supplier_3"],
+        incoterms=supply_data["incoterms"],
+        t_mode=supply_data["t_mode"],
     )
     report()
 
 
 def handle_new_supply_info(values):
     supply = SupplyDataReader(
-        path_supply=values["supply_path"], path_groups=path_groups
+        path_supply=values["supply_path"], path_groups=paths["groups"]
     )
     supply()
 
@@ -197,11 +189,11 @@ main_functions_layout = [
         sg.Column(
             [
                 [sg.Text("Password manager", font=20)],
-                [sg.Button("Pass_Main", size=(20, 1))],
-                [sg.Button("Pass_Bible", size=(20, 1))],
-                [sg.Button("Pass_Bright", size=(20, 1))],
-                [sg.Button("Pass_Mole", size=(20, 1))],
-                [sg.Button("Pass_RPG", size=(20, 1))],
+                [sg.Button(passwords["name_1"], size=(20, 1))],
+                [sg.Button(passwords["name_2"], size=(20, 1))],
+                [sg.Button(passwords["name_3"], size=(20, 1))],
+                [sg.Button(passwords["name_4"], size=(20, 1))],
+                [sg.Button(passwords["name_5"], size=(20, 1))],
             ],
             element_justification="top",
             vertical_alignment="top",
@@ -234,13 +226,13 @@ event_handlers = {
     "Groups_balances": handle_components_balances,
     "Create_POs": handle_create_pos,
     "Sort_My_Data": handle_sort_my_data,
-    "Pass_Main": handle_give_pass_main,
-    "Pass_Bible": handle_give_pass_bible,
-    "Pass_Bright": handle_give_pass_bright,
-    "Pass_Mole": handle_give_pass_mole,
-    "Pass_RPG": handle_give_pass_rpg,
     "Supply_info": handle_report_supply_info,
     "New_supply_info": handle_new_supply_info,
+    passwords["name_1"]: lambda x: handle_get_password(x, passwords["pass_1"]),
+    passwords["name_2"]: lambda x: handle_get_password(x, passwords["pass_2"]),
+    passwords["name_3"]: lambda x: handle_get_password(x, passwords["pass_3"]),
+    passwords["name_4"]: lambda x: handle_get_password(x, passwords["pass_4"]),
+    passwords["name_5"]: lambda x: handle_get_password(x, passwords["pass_5"]),
 }
 
 while True:
@@ -249,13 +241,13 @@ while True:
     if event == sg.WIN_CLOSED or event == "Exit":
         break
     if event in event_handlers:
-        # event_handlers[event](values)
-        try:
-            event_handlers[event](values)
-        except Exception as e:
-            error_message = (
-                f"An error occurred while processing the '{event}' event:\n{str(e)}"
-            )
-            sg.popup_error(error_message)
+        event_handlers[event](values)
+        # try:
+        #     event_handlers[event](values)
+        # except Exception as e:
+        #     error_message = (
+        #         f"An error occurred while processing the '{event}' event:\n{str(e)}"
+        #     )
+        #     sg.popup_error(error_message)
 
 window.close()

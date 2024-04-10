@@ -59,6 +59,7 @@ class ProductsDataReader:
         for i, x in enumerate(all_weeks_data):
             if start_of_week in x:
                 weeks_data = weeks_data + all_weeks_data[i:]
+                break
         self.data = self.data[non_date_columns + weeks_data + [penultimate_column]]
 
         new_weeks_dates = [

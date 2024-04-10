@@ -93,11 +93,11 @@ class FactoryDataReader:
         report_file_path = os.path.join(directory_path, filename)
         writer = pd.ExcelWriter(report_file_path)
 
-        self.factory_data.to_excel(writer, sheet_name=f"Factory_data", index=False)
+        self.final_data.to_excel(writer, sheet_name=f"Ready_data", index=False)
         self.active_components_data.to_excel(
             writer, sheet_name=f"Active_components_data", index=False
         )
-        self.final_data.to_excel(writer, sheet_name=f"Ready_data", index=False)
+        self.factory_data.to_excel(writer, sheet_name=f"Factory_data", index=False)
 
         writer._save()
 
