@@ -241,13 +241,13 @@ while True:
     if event == sg.WIN_CLOSED or event == "Exit":
         break
     if event in event_handlers:
-        event_handlers[event](values)
-        # try:
-        #     event_handlers[event](values)
-        # except Exception as e:
-        #     error_message = (
-        #         f"An error occurred while processing the '{event}' event:\n{str(e)}"
-        #     )
-        #     sg.popup_error(error_message)
+        # event_handlers[event](values)
+        try:
+            event_handlers[event](values)
+        except Exception as e:
+            error_message = (
+                f"An error occurred while processing the '{event}' event:\n{str(e)}"
+            )
+            sg.popup_error(error_message)
 
 window.close()
