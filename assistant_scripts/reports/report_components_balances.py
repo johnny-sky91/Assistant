@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from datetime import datetime, timedelta
 from openpyxl import load_workbook
-from openpyxl.styles import PatternFill, NamedStyle
+from openpyxl.styles import PatternFill, NamedStyle, Font, Border, Side
 from openpyxl.formatting.rule import CellIsRule
 from assistant_scripts.read_data.read_components_data import ComponentsDataReader
 import openpyxl.utils
@@ -70,9 +70,16 @@ class ComponentsBalances:
             data.insert(0, "GROUP", data.pop("GROUP"))
 
     def prepare_groups_balances(self):
-        groups_balances_headers = (
-            ["Category", "Description", "Group", "Data"] + self.weeks + ["Comments"]
-        )
+        groups_balances_headers = [
+            "Category",
+            "Description",
+            "Group",
+            "Data",
+            "Current stock",
+            "Healthy Stock Level vs. Forecast",
+            "Healthy Stock Level vs. Actuals",
+            "Comments",
+        ] + self.weeks
         self.groups_balances = pd.DataFrame(columns=groups_balances_headers)
         groups = pd.DataFrame(
             self.groups[["GROUP", "GROUP_DESCRIPTION"]].drop_duplicates()
@@ -85,27 +92,47 @@ class ComponentsBalances:
         self.groups_balances["Category"] = "MEM"
 
     def _formula_first_column(self, row):
-        part_a = f"=_xlfn.SUMIFS(Stock!$E:$E,Stock!$A:$A,$C{row.name +2})"
+        part_a = f"E{row.name +2}"
         part_b = (
-            f"_xlfn.SUMIFS(Supply!$E:$E,Supply!$D:$D,E$1,Supply!$A:$A,$C{row.name +2})"
+            f"_xlfn.SUMIFS(Supply!$E:$E,Supply!$D:$D,I$1,Supply!$A:$A,$C{row.name +2})"
         )
         part_c = f'_xlfn.IF($D{row.name +2}="Stock vs. Real customer orders",SUMIFS(Order!C:C,Order!$A:$A,$C{row.name +2}),SUMIFS(Demand_Plan!C:C,Demand_Plan!$A:$A,$C{row.name +2}))'
         return f"={part_a}+{part_b}-{part_c}"
 
     def _formula_next_columns(self, row):
-        part_a = f"E{row.name +2}"
+        part_a = f"I{row.name +2}"
         part_b = (
-            f"_xlfn.SUMIFS(Supply!$E:$E,Supply!$D:$D,F$1,Supply!$A:$A,$C{row.name +2})"
+            f"_xlfn.SUMIFS(Supply!$E:$E,Supply!$D:$D,J$1,Supply!$A:$A,$C{row.name +2})"
         )
         part_c = f'_xlfn.IF($D{row.name +2}="Stock vs. Real customer orders",SUMIFS(Order!D:D,Order!$A:$A,$C{row.name +2}),SUMIFS(Demand_Plan!D:D,Demand_Plan!$A:$A,$C{row.name +2}))'
         return f"={part_a}+{part_b}-{part_c}"
 
-    def _apply_balances_formulas(self):
-        self.groups_balances.iloc[:, 4] = self.groups_balances.apply(
+    def _formula_stock_columns(self, row):
+        return f"=_xlfn.SUMIFS(Stock!$E:$E,Stock!$A:$A,C{row.name +2})"
+
+    def _formula_avg_demand_columns(self, row):
+        return f"=_xlfn.AVERAGE(C{row.name +2}:V{row.name +2})*4"
+
+    def _formula_dos_forecast(self, row):
+        part_a = f"_xlfn.SUMIFS(Demand_Plan!$W:$W,Demand_Plan!$A:$A,$C{row.name +2})"
+        part_b = 1.5
+        return f"={part_a}*{part_b}"
+
+    def _apply_formulas(self):
+        self.groups_balances.iloc[:, 8] = self.groups_balances.apply(
             lambda row: self._formula_first_column(row), axis=1
         )
-        self.groups_balances.iloc[:, 5] = self.groups_balances.apply(
+        self.groups_balances.iloc[:, 9] = self.groups_balances.apply(
             lambda row: self._formula_next_columns(row), axis=1
+        )
+        self.groups_balances.iloc[:, 4] = self.groups_balances.apply(
+            lambda row: self._formula_stock_columns(row), axis=1
+        )
+        self.groups_balances.iloc[:, 5] = self.groups_balances.apply(
+            lambda row: self._formula_dos_forecast(row), axis=1
+        )
+        self.demand["AVG"] = self.demand.apply(
+            lambda row: self._formula_avg_demand_columns(row), axis=1
         )
 
     def _apply_excel_formatting(self, final_file_path):
@@ -121,9 +148,15 @@ class ComponentsBalances:
             sheet.conditional_formatting.add("B2:AE1000", rule_negative)
 
         sheet = workbook["Groups_balances"]
-        columns_to_format = list(range(5, 21))
+        columns_to_format = list(range(9, 25))
         date_format = NamedStyle(name="date_format", number_format="m/d")
-
+        date_format.font = Font(bold=True)
+        date_format.border = Border(
+            left=Side(style="thin"),
+            right=Side(style="thin"),
+            top=Side(style="thin"),
+            bottom=Side(style="thin"),
+        )
         for column_number in columns_to_format:
             column_letter = openpyxl.utils.get_column_letter(column_number)
             cell = sheet[column_letter + "1"]
@@ -168,6 +201,6 @@ class ComponentsBalances:
         self.get_supply()
         self.add_groups()
         self.prepare_groups_balances()
-        self._apply_balances_formulas()
+        self._apply_formulas()
         self.get_report_sources()
         self.save_to_excel()
