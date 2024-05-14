@@ -80,9 +80,6 @@ class CreateSupplyInfo:
         )
         self.supply_info = self.supply_info.drop_duplicates()
 
-        # wynik = self.supply_info[self.supply_info["COMPONENT"] == "CA08889-1016"]
-        # print(wynik.to_string())
-
         self.supply_info["Codenumber"].fillna("NOT_FOUND", inplace=True)
         self.supply_info["Part number"].fillna("NOT_FOUND", inplace=True)
         self.supply_info["Description"].fillna("NOT_FOUND", inplace=True)
