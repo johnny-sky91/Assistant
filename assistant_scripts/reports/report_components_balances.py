@@ -1,11 +1,13 @@
 import os
 import pandas as pd
+import openpyxl.utils
+
 from datetime import datetime, timedelta
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, NamedStyle, Font, Border, Side
 from openpyxl.formatting.rule import CellIsRule
+
 from assistant_scripts.read_data.read_components_data import ComponentsDataReader
-import openpyxl.utils
 
 
 class ComponentsBalances:
