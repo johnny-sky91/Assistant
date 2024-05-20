@@ -1,5 +1,6 @@
 import pandas as pd
 import datetime, os, openpyxl
+
 from datetime import timedelta
 from openpyxl.worksheet.datavalidation import DataValidation
 
@@ -38,13 +39,9 @@ class SupplyDataReader:
         date_columns = [
             x for x in self.data.columns if isinstance(x, datetime.datetime)
         ]
-        # print(date_columns)
-        # for x in date_columns:
-        #     print(x)
         today = datetime.datetime.today()
         today = today.replace(hour=0, minute=0, second=0, microsecond=0)
         start_of_week = today - timedelta(days=today.weekday())
-        # print(start_of_week)
 
         date_columns = date_columns[date_columns.index(start_of_week) :]
         self.data = self.data[ready_columns + date_columns]
@@ -88,14 +85,14 @@ class SupplyDataReader:
 
         writer = pd.ExcelWriter(report_file_path)
 
-        self.supply_info.to_excel(writer, sheet_name=f"current_info", index=False)
+        self.supply_info.to_excel(writer, sheet_name=f"supply_confirmed", index=False)
 
         info_df = pd.DataFrame({"Source_file": [source_file]})
         info_df.to_excel(writer, sheet_name="INFO", index=False)
 
         writer._save()
         add_dropdown_statuses(
-            excel_filename=report_file_path, sheet_name="current_info"
+            excel_filename=report_file_path, sheet_name="supply_confirmed"
         )
 
     def __call__(self):

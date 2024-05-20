@@ -28,7 +28,7 @@ class CreateSupplyInfo:
     def read_supply_data(self):
         try:
             self.supply_info_raw = pd.read_excel(
-                self.path_supply, sheet_name="current_info"
+                self.path_supply, sheet_name="supply_confirmed"
             )
             self.components_info = pd.read_excel(self.path_components)
         except Exception as e:
