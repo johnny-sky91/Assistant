@@ -131,7 +131,7 @@ class GroupsStatuses:
 
     def get_supply_data(self):
         self.all_components_supply = pd.read_excel(
-            self.path_supply, sheet_name="current_info"
+            self.path_supply, sheet_name="supply_confirmed"
         )
 
     def get_db_info_data(self):

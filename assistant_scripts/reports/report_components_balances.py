@@ -59,7 +59,7 @@ class ComponentsBalances:
         self.stock = comp_data.components_stock
 
     def get_supply(self):
-        self.supply = pd.read_excel(self.path_supply, sheet_name="current_info")
+        self.supply = pd.read_excel(self.path_supply, sheet_name="supply_confirmed")
 
     def add_groups(self):
         to_add_groups = [self.orders, self.demand, self.stock]
