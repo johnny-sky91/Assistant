@@ -1,7 +1,11 @@
 import os, datetime
 
 import pandas as pd
+import openpyxl.utils
 
+from openpyxl import load_workbook
+from openpyxl.styles import PatternFill, NamedStyle, Font, Border, Side
+from openpyxl.formatting.rule import CellIsRule
 from assistant_scripts.read_data.read_dispoview_data import DispoviewDataReader
 
 
@@ -76,25 +80,31 @@ class GroupsDispoview:
         self.weeks = list(self.all_merged_data.columns[4:])
 
     def _formula_column(self, row, first: bool):
-        if row["DATA"] == "Balance_forecast_confirmed":
+        if row["DATA"] == "Forecast_confirmed":
             if first:
-                part_a = f'_xlfn.SUMIFS(All_data!E:E,All_data!B:B,$A{row.name +2},All_data!D:D,"Stock")'
+                part_a = f'_xlfn.SUMIFS(All_data!E:E,All_data!$B:$B,$A{row.name +2},All_data!$D:$D,"Stock")'
+                sub_part_a = f"E$1"
+                sub_part_b = f"All_data!E:E"
             else:
                 part_a = f"E{row.name +2}"
-            part_b = f'_xlfn.SUMIFS(All_data!E:E,All_data!B:B,$A{row.name +2},All_data!D:D,"CustOrders")'
-            part_c = f'_xlfn.SUMIFS(All_data!E:E,All_data!B:B,$A{row.name +2},All_data!D:D,"NetForecast")'
-            part_d = f"_xlfn.SUMIFS(Supply_confirmed!$E:$E,Supply_confirmed!$A:$A,$A{row.name +2},Supply_confirmed!$D:$D,E$1)"
-            return f"={part_a}-{part_b}-{part_c}+{part_d}"
+                sub_part_a = f"F$1"
+                sub_part_b = f"All_data!F:F"
+            part_b = f'_xlfn.SUMIFS({sub_part_b},All_data!$B:$B,$A{row.name +2},All_data!$D:$D,"NetForecast")'
+            part_c = f"_xlfn.SUMIFS(Supply_confirmed!$E:$E,Supply_confirmed!$A:$A,$A{row.name +2},Supply_confirmed!$D:$D,{sub_part_a})"
+            return f"={part_a}-{part_b}+{part_c}"
 
-        if row["DATA"] == "Balance_forecast_requested":
+        if row["DATA"] == "Orders_confirmed":
             if first:
-                part_a = f'_xlfn.SUMIFS(All_data!E:E,All_data!B:B,$A{row.name +2},All_data!D:D,"Stock")'
+                part_a = f'_xlfn.SUMIFS(All_data!E:E,All_data!$B:$B,$A{row.name +2},All_data!$D:$D,"Stock")'
+                sub_part_a = f"E$1"
+                sub_part_b = f"All_data!E:E"
             else:
                 part_a = f"E{row.name +2}"
-            part_b = f'_xlfn.SUMIFS(All_data!E:E,All_data!B:B,$A{row.name +2},All_data!D:D,"CustOrders")'
-            part_c = f'_xlfn.SUMIFS(All_data!E:E,All_data!B:B,$A{row.name +2},All_data!D:D,"NetForecast")'
-            part_d = f"_xlfn.SUMIFS(Supply_requested!$E:$E,Supply_requested!$A:$A,$A{row.name +2},Supply_requested!$D:$D,E$1)"
-            return f"={part_a}-{part_b}-{part_c}+{part_d}"
+                sub_part_a = f"F$1"
+                sub_part_b = f"All_data!F:F"
+            part_b = f'_xlfn.SUMIFS({sub_part_b},All_data!$B:$B,$A{row.name +2},All_data!$D:$D,"CustOrders")'
+            part_c = f"_xlfn.SUMIFS(Supply_confirmed!$E:$E,Supply_confirmed!$A:$A,$A{row.name +2},Supply_confirmed!$D:$D,{sub_part_a})"
+            return f"={part_a}-{part_b}+{part_c}"
 
     def _create_groups_balances(self):
         main_headers = ["GROUP", "GROUP_DESCRIPTION", "DATA", "COMMENTS"] + self.weeks
@@ -105,11 +115,14 @@ class GroupsDispoview:
         )
         self.groups_balances = pd.DataFrame(columns=main_headers)
 
-        balance_forecast_confirmed = groups_descriptions.copy()
-        balance_forecast_confirmed["DATA"] = "Balance_forecast_confirmed"
+        forecast_confirmed = groups_descriptions.copy()
+        forecast_confirmed["DATA"] = "Forecast_confirmed"
 
-        balance_forecast_requested = groups_descriptions.copy()
-        balance_forecast_requested["DATA"] = "Balance_forecast_requested"
+        orders_confirmed = groups_descriptions.copy()
+        orders_confirmed["DATA"] = "Orders_confirmed"
+
+        forecast_requested = groups_descriptions.copy()
+        forecast_requested["DATA"] = "Forecast_requested"
 
         healthy_stock_forecast = groups_descriptions.copy()
         healthy_stock_forecast["DATA"] = "Healthy_stock_forecast"
@@ -117,9 +130,10 @@ class GroupsDispoview:
         self.groups_balances = pd.concat(
             [
                 self.groups_balances,
-                balance_forecast_confirmed,
-                balance_forecast_requested,
+                forecast_confirmed,
+                forecast_requested,
                 healthy_stock_forecast,
+                orders_confirmed,
             ],
             ignore_index=True,
         )
@@ -129,6 +143,19 @@ class GroupsDispoview:
         self.groups_balances.iloc[:, 5] = self.groups_balances.apply(
             lambda row: self._formula_column(row, False), axis=1
         )
+
+    def _apply_excel_formatting(self, final_file_path):
+        redFill = PatternFill(
+            start_color="FF7276", end_color="FF7276", fill_type="solid"
+        )
+        rule_negative = CellIsRule(
+            operator="lessThan", formula=[0], stopIfTrue=True, fill=redFill
+        )
+        workbook = load_workbook(filename=final_file_path)
+        for sheet_name in workbook.sheetnames:
+            sheet = workbook[sheet_name]
+            sheet.conditional_formatting.add("B2:Z1000", rule_negative)
+        workbook.save(final_file_path)
 
     def _save_to_excel(self):
         now = datetime.datetime.now()
@@ -147,9 +174,9 @@ class GroupsDispoview:
         self.supply_confirmed.to_excel(
             writer, sheet_name=f"Supply_requested", index=False
         )
-        self.ready_groups.to_excel(writer, sheet_name=f"Groups", index=False)
-        self.groups_balances.to_excel(writer, sheet_name=f"Groups", index=False)
+        self.raw_groups.to_excel(writer, sheet_name=f"Groups", index=False)
         writer._save()
+        self._apply_excel_formatting(report_file_path)
 
     def __call__(self):
         self._read_dispoview()
